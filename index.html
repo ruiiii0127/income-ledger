@@ -856,10 +856,9 @@ function applyStuAmountFieldState(){
   const type = selectedStuPayType;
   const mode = selectedStuMonthlyMode;
   const isByCount = type === "月領" && mode === "bycount";
-  const showHours = type === "次領" || isByCount;
+  const showHours = type === "次領" || type === "兩次領" || isByCount;
   document.getElementById("stuRateLabel").textContent =
     type === "月領" ? (isByCount ? "時薪 (NT$)" : "每月固定金額 (NT$)")
-    : type === "兩次領" ? "每期金額 (NT$)"
     : "時薪 (NT$)";
   document.getElementById("stuHoursRow").style.display = showHours ? "block" : "none";
 }
@@ -964,7 +963,7 @@ function renderStudents(){
     <div class="roster-card" data-id="${s.id}">
       <div class="roster-card-top">
         <div class="roster-name">${s.name}<span class="paytype-tag">${s.mode || "實體"}</span><span class="paytype-tag">${s.payType || "次領"}</span></div>
-        <div class="roster-rate tutor">${s.rate? fmt(s.rate)+(s.payType==="月領"?(s.monthlyMode==="bycount"?"/hr":"/月"):(s.payType==="兩次領"?"/期":"/hr")) : "—"}</div>
+        <div class="roster-rate tutor">${s.rate? fmt(s.rate)+(s.payType==="月領"&&s.monthlyMode!=="bycount"?"/月":"/hr") : "—"}</div>
       </div>
       <div class="roster-sub">${[s.subject, weekdaysText(s), s.schedule].filter(Boolean).join(" · ") || "—"}</div>
       ${s.note ? `<div class="roster-sub">${s.note}</div>` : ""}
@@ -1030,10 +1029,9 @@ function applyJobAmountFieldState(){
   const type = selectedJobPayType;
   const mode = selectedJobMonthlyMode;
   const isByCount = type === "月領" && mode === "bycount";
-  const showHours = type === "次領" || isByCount;
+  const showHours = type === "次領" || type === "兩次領" || isByCount;
   document.getElementById("jobRateLabel").textContent =
     type === "月領" ? (isByCount ? "時薪 (NT$)" : "每月固定金額 (NT$)")
-    : type === "兩次領" ? "每期金額 (NT$)"
     : "時薪 (NT$)";
   document.getElementById("jobHoursRow").style.display = showHours ? "block" : "none";
 }
@@ -1127,7 +1125,7 @@ function renderJobs(){
     <div class="roster-card" data-id="${j.id}">
       <div class="roster-card-top">
         <div class="roster-name">${j.name}<span class="paytype-tag">${j.payType || "次領"}</span></div>
-        <div class="roster-rate job">${j.rate? fmt(j.rate)+(j.payType==="月領"?(j.monthlyMode==="bycount"?"/hr":"/月"):(j.payType==="兩次領"?"/期":"/hr")) : "—"}</div>
+        <div class="roster-rate job">${j.rate? fmt(j.rate)+(j.payType==="月領"&&j.monthlyMode!=="bycount"?"/月":"/hr") : "—"}</div>
       </div>
       <div class="roster-sub">${[j.place, weekdaysText(j), j.schedule, j.contact].filter(Boolean).join(" · ") || "—"}</div>
       ${j.note ? `<div class="roster-sub">${j.note}</div>` : ""}
@@ -1311,18 +1309,23 @@ function profileCardHtml(p, category, monthKeyStr, year, month){
     </div>`;
   }else if(payType === "兩次領"){
     const pairs = twoSessionPayments(p, year, month);
-    sessionTotalPay = pairs.length * (p.rate||0);
     if(pairs.length === 0){
+      sessionTotalPay = 0;
       body += `<div class="profile-sub" style="margin-top:8px;">${p.biweeklyAnchor ? "本月還沒湊滿 2 次可領款" : "尚未設定起算日"}</div>`;
     }else{
+      let pairPayTotal = 0;
       body += pairs.map(pr=>{
         const done = !!findReceipt(p.id, pr.payDate);
+        const pairHours = getHoursForDate(p, pr.sessions[0]) + getHoursForDate(p, pr.sessions[1]);
+        const amount = pairHours * (p.rate||0);
+        pairPayTotal += amount;
         return `<div class="monthly-row">
-          <div class="monthly-label">${shortDate(pr.payDate)} · ${fmt(p.rate)}</div>
+          <div class="monthly-label">${shortDate(pr.payDate)}（共 ${pairHours} hr）· ${fmt(amount)}</div>
           <button class="occ-btn ${done?"done":""}" data-reftype="${refType}" data-refid="${p.id}" data-period="${pr.payDate}" data-periodtype="twosession"
-            data-category="${category}" data-amount="${p.rate}" data-name="${p.name}">${done? "✓ 已領取" : "已領取"}</button>
+            data-category="${category}" data-amount="${amount}" data-name="${p.name}">${done? "✓ 已領取" : "已領取"}</button>
         </div>`;
       }).join("");
+      sessionTotalPay = pairPayTotal;
     }
   }
 
