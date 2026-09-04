@@ -1255,37 +1255,26 @@ function profileCardHtml(p, category, monthKeyStr, year, month){
   const payType = p.payType || "次領";
   const dates = profileMonthDates(p, year, month);
   const attendedSet = new Set(p.attendedDates || []);
-  const perSessionAmount = (p.hours && p.rate) ? p.rate * p.hours : p.rate;
   const refType = category === "家教" ? "student" : "job";
-  const isJob = category === "工讀";
 
   let body = "";
-  let jobTotalPay = 0;
+  let sessionTotalPay = 0;
   if(dates.length === 0){
     body += `<div class="profile-sub" style="margin-top:8px;">這個月還沒有排定日期</div>`;
   }else if(payType === "次領"){
     body += dates.map(d=>{
       const r = findReceipt(p.id, d);
       const done = !!r;
-      if(isJob){
-        const hrs = getHoursForDate(p, d);
-        const amount = hrs * (p.rate||0);
-        jobTotalPay += amount;
-        return `<div class="occ-row" style="flex-wrap:wrap;">
-          <div class="occ-date">${shortDate(d)}</div>
-          <input type="number" class="hour-input" value="${hrs}" min="0" step="0.5"
-            data-hour-refid="${p.id}" data-hour-date="${d}"><span class="hour-suffix">hr</span>
-          <div class="occ-amount">${fmt(amount)}</div>
-          <button class="occ-btn ${done?"done":""}" data-reftype="${refType}" data-refid="${p.id}" data-period="${d}" data-periodtype="daily"
-            data-category="${category}" data-amount="${amount}" data-name="${p.name}">${done? "✓ 已領取" : "已領取"}</button>
-          ${done ? "" : `<button class="occ-remove" data-sched-action="skip" data-sched-reftype="${refType}" data-sched-refid="${p.id}" data-sched-date="${d}" title="移除這天">✕</button>`}
-        </div>`;
-      }
-      return `<div class="occ-row">
+      const hrs = getHoursForDate(p, d);
+      const amount = hrs * (p.rate||0);
+      sessionTotalPay += amount;
+      return `<div class="occ-row" style="flex-wrap:wrap;">
         <div class="occ-date">${shortDate(d)}</div>
-        <div class="occ-amount">${fmt(perSessionAmount)}</div>
+        <input type="number" class="hour-input" value="${hrs}" min="0" step="0.5"
+          data-hour-reftype="${refType}" data-hour-refid="${p.id}" data-hour-date="${d}"><span class="hour-suffix">hr</span>
+        <div class="occ-amount">${fmt(amount)}</div>
         <button class="occ-btn ${done?"done":""}" data-reftype="${refType}" data-refid="${p.id}" data-period="${d}" data-periodtype="daily"
-          data-category="${category}" data-amount="${perSessionAmount}" data-name="${p.name}">${done? "✓ 已領取" : "已領取"}</button>
+          data-category="${category}" data-amount="${amount}" data-name="${p.name}">${done? "✓ 已領取" : "已領取"}</button>
         ${done ? "" : `<button class="occ-remove" data-sched-action="skip" data-sched-reftype="${refType}" data-sched-refid="${p.id}" data-sched-date="${d}" title="移除這天">✕</button>`}
       </div>`;
     }).join("");
@@ -1293,18 +1282,11 @@ function profileCardHtml(p, category, monthKeyStr, year, month){
     body += dates.map(d=>{
       const attended = attendedSet.has(d);
       const label = category==="家教" ? "上課" : "上班";
-      if(isJob){
-        const hrs = getHoursForDate(p, d);
-        return `<div class="occ-row" style="flex-wrap:wrap;">
-          <div class="occ-date">${shortDate(d)}</div>
-          <input type="number" class="hour-input" value="${hrs}" min="0" step="0.5"
-            data-hour-refid="${p.id}" data-hour-date="${d}"><span class="hour-suffix">hr</span>
-          <button class="attend-btn ${attended?"checked":""}" data-attend-reftype="${refType}" data-attend-refid="${p.id}" data-attend-date="${d}">${attended? "✓ 有上班" : "上班"}</button>
-          <button class="occ-remove" data-sched-action="skip" data-sched-reftype="${refType}" data-sched-refid="${p.id}" data-sched-date="${d}" title="移除這天">✕</button>
-        </div>`;
-      }
-      return `<div class="occ-row">
+      const hrs = getHoursForDate(p, d);
+      return `<div class="occ-row" style="flex-wrap:wrap;">
         <div class="occ-date">${shortDate(d)}</div>
+        <input type="number" class="hour-input" value="${hrs}" min="0" step="0.5"
+          data-hour-reftype="${refType}" data-hour-refid="${p.id}" data-hour-date="${d}"><span class="hour-suffix">hr</span>
         <button class="attend-btn ${attended?"checked":""}" data-attend-reftype="${refType}" data-attend-refid="${p.id}" data-attend-date="${d}">${attended? "✓ 有"+label : label}</button>
         <button class="occ-remove" data-sched-action="skip" data-sched-reftype="${refType}" data-sched-refid="${p.id}" data-sched-date="${d}" title="移除這天">✕</button>
       </div>`;
@@ -1316,8 +1298,9 @@ function profileCardHtml(p, category, monthKeyStr, year, month){
     const done = !!mr;
     const isByCount = p.monthlyMode === "bycount";
     const sessionCount = dates.length;
-    const monthlyAmount = isByCount ? perSessionAmount * sessionCount : p.rate;
-    jobTotalPay = monthlyAmount;
+    const totalHoursThisMonth = dates.reduce((sum,d)=> sum + getHoursForDate(p, d), 0);
+    const monthlyAmount = isByCount ? totalHoursThisMonth * (p.rate||0) : p.rate;
+    sessionTotalPay = monthlyAmount;
     const label = isByCount
       ? `${category==="家教"?"本月預計上":"本月預計上班"} ${sessionCount} ${category==="家教"?"堂":"次"} · ${fmt(monthlyAmount)}`
       : `本月固定金額 · ${fmt(monthlyAmount)}`;
@@ -1328,7 +1311,7 @@ function profileCardHtml(p, category, monthKeyStr, year, month){
     </div>`;
   }else if(payType === "兩次領"){
     const pairs = twoSessionPayments(p, year, month);
-    jobTotalPay = pairs.length * (p.rate||0);
+    sessionTotalPay = pairs.length * (p.rate||0);
     if(pairs.length === 0){
       body += `<div class="profile-sub" style="margin-top:8px;">${p.biweeklyAnchor ? "本月還沒湊滿 2 次可領款" : "尚未設定起算日"}</div>`;
     }else{
@@ -1343,11 +1326,11 @@ function profileCardHtml(p, category, monthKeyStr, year, month){
     }
   }
 
-  let jobSummaryHtml = "";
-  if(isJob && dates.length > 0){
+  let hoursSummaryHtml = "";
+  if(dates.length > 0){
     const totalHours = dates.reduce((sum,d)=> sum + getHoursForDate(p, d), 0);
-    const avgWage = totalHours > 0 ? jobTotalPay / totalHours : 0;
-    jobSummaryHtml = `<div class="job-summary">本月共上 ${totalHours} 小時 · 平均時薪 ${fmt(avgWage)}</div>`;
+    const avgWage = totalHours > 0 ? sessionTotalPay / totalHours : 0;
+    hoursSummaryHtml = `<div class="job-summary">本月共${category==="家教"?"上":"上班"} ${totalHours} 小時 · 平均時薪 ${fmt(avgWage)}</div>`;
   }
 
   const addInputId = `addDate-${p.id}`;
@@ -1359,7 +1342,7 @@ function profileCardHtml(p, category, monthKeyStr, year, month){
     </div>
     <div class="profile-sub">${[weekdaysText(p), p.schedule].filter(Boolean).join(" · ")}</div>
     ${body}
-    ${jobSummaryHtml}
+    ${hoursSummaryHtml}
     <div class="add-date-row">
       <input type="date" id="${addInputId}">
       <button data-sched-action="add" data-sched-reftype="${refType}" data-sched-refid="${p.id}" data-sched-dateinput="${addInputId}">+ 補一天</button>
@@ -1518,16 +1501,24 @@ async function handleScheduleAction(e){
 async function handleHourInputChange(e){
   const input = e.target.closest("[data-hour-refid]");
   if(!input) return;
+  const reftype = input.dataset.hourReftype;
   const refid = input.dataset.hourRefid;
   const date = input.dataset.hourDate;
   const val = parseFloat(input.value) || 0;
-  const idx = jobs.findIndex(x => x.id === refid);
+  const list = reftype === "student" ? students : jobs;
+  const idx = list.findIndex(x => x.id === refid);
   if(idx === -1) return;
-  const profile = { ...jobs[idx] };
+  const profile = { ...list[idx] };
   profile.dailyHours = profile.dailyHours ? { ...profile.dailyHours } : {};
   profile.dailyHours[date] = val;
-  jobs[idx] = profile;
-  await saveKey(JOBS_KEY, jobs);
+  list[idx] = profile;
+  if(reftype === "student"){
+    students = list;
+    await saveKey(STUDENTS_KEY, students);
+  }else{
+    jobs = list;
+    await saveKey(JOBS_KEY, jobs);
+  }
   renderThisMonth();
 }
 
@@ -1565,6 +1556,7 @@ function thisMonthListClick(e){
   if(e.target.closest("[data-reftype]")){ handleThisMonthClick(e); return; }
 }
 document.getElementById("thisMonthTutorList").addEventListener("click", thisMonthListClick);
+document.getElementById("thisMonthTutorList").addEventListener("change", handleHourInputChange);
 document.getElementById("thisMonthJobList").addEventListener("click", thisMonthListClick);
 document.getElementById("thisMonthJobList").addEventListener("change", handleHourInputChange);
 document.getElementById("thisMonthSubsidyList").addEventListener("click", thisMonthListClick);
