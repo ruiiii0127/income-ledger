@@ -22,6 +22,8 @@
     --scholar-soft:#EFE4C4;
     --rent:#5B7A99;
     --rent-soft:#DCE6EE;
+    --other:#7A6C8B;
+    --other-soft:#E6E0EC;
     --status-submit:#7A8B85;
     --status-submit-soft:#E7EAE4;
     --status-approve:#B08A2E;
@@ -79,11 +81,13 @@
   .stat.job{ background:var(--job-soft); }
   .stat.scholar{ background:var(--scholar-soft); }
   .stat.rent{ background:var(--rent-soft); }
+  .stat.other{ background:var(--other-soft); }
   .stat .k{ font-size:11px; margin-bottom:2px; }
   .stat.tutor .k{ color:var(--tutor); }
   .stat.job .k{ color:var(--job); }
   .stat.scholar .k{ color:var(--scholar); }
   .stat.rent .k{ color:var(--rent); }
+  .stat.other .k{ color:var(--other); }
   .stat .v{ font-size:16px; font-weight:700; }
 
   .chart-card{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px 10px; margin-bottom:14px; }
@@ -95,6 +99,7 @@
   .dot.job{ background:var(--job); }
   .dot.scholar{ background:var(--scholar); }
   .dot.rent{ background:var(--rent); }
+  .dot.other{ background:var(--other); }
 
   .entries{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px 18px; margin-bottom:16px; }
   .entry{ display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px dashed var(--line); gap:10px; }
@@ -105,6 +110,7 @@
   .tag.job{ background:var(--job-soft); color:var(--job); }
   .tag.scholar{ background:var(--scholar-soft); color:var(--scholar); }
   .tag.rent{ background:var(--rent-soft); color:var(--rent); }
+  .tag.other{ background:var(--other-soft); color:var(--other); }
   .entry-note{ font-size:13px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .entry-date{ font-size:11px; color:var(--ink-soft); }
   .entry-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
@@ -137,6 +143,7 @@
   .type-toggle button.active.job{ background:var(--job); border-color:var(--job); color:#fff; }
   .type-toggle button.active.scholar{ background:var(--scholar); border-color:var(--scholar); color:#fff; }
   .type-toggle button.active.rent{ background:var(--rent); border-color:var(--rent); color:#fff; }
+  .type-toggle button.active.other{ background:var(--other); border-color:var(--other); color:#fff; }
   .hint{ font-size:11px; color:var(--ink-soft); margin-top:-6px; margin-bottom:12px; }
   .form-actions{ display:flex; gap:8px; margin-top:14px; }
   .form-actions button{ flex:1; padding:11px; border-radius:8px; border:none; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
@@ -205,7 +212,7 @@
   .profile-name{ font-weight:700; font-size:15px; }
   .profile-sub{ font-size:12px; color:var(--ink-soft); margin-top:3px; }
   .occ-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 0; border-top:1px dashed var(--line); }
-  .occ-date{ font-size:13px; color:var(--ink-soft); width:56px; flex-shrink:0; }
+  .occ-date{ font-size:12px; color:var(--ink-soft); width:76px; flex-shrink:0; }
   .occ-amount{ font-size:13px; font-weight:600; flex:1; }
   .occ-btn{
     padding:6px 12px; border-radius:7px; border:1px solid var(--line); background:#fff;
@@ -268,6 +275,15 @@
         <div class="stat job"><div class="k">工讀</div><div class="v" id="jobTotal">$0</div></div>
         <div class="stat scholar"><div class="k">獎學金</div><div class="v" id="scholarTotal">$0</div></div>
         <div class="stat rent"><div class="k">租屋補助</div><div class="v" id="rentTotal">$0</div></div>
+        <div class="stat other"><div class="k">其他</div><div class="v" id="otherTotal">$0</div></div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">本月收入佔比</div>
+      <div id="pieWrap" style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+        <svg id="pieChart" width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0;"></svg>
+        <div id="pieLegend" style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--ink-soft);"></div>
       </div>
     </div>
 
@@ -279,6 +295,7 @@
         <span><i class="dot job"></i>工讀</span>
         <span><i class="dot scholar"></i>獎學金</span>
         <span><i class="dot rent"></i>租屋補助</span>
+        <span><i class="dot other"></i>其他</span>
       </div>
     </div>
 
@@ -292,6 +309,7 @@
           <button type="button" class="job" data-type="工讀">工讀</button>
           <button type="button" class="scholar" data-type="獎學金">獎學金</button>
           <button type="button" class="rent" data-type="租屋補助">租屋補助</button>
+          <button type="button" class="other" data-type="其他">其他</button>
         </div>
       </div>
       <div class="form-row" id="refSelectRow" style="display:none;">
@@ -643,7 +661,8 @@ function renderChart(){
     const job = me.filter(e=>e.type==="工讀").reduce((s,e)=>s+e.amount,0);
     const scholar = me.filter(e=>e.type==="獎學金").reduce((s,e)=>s+e.amount,0);
     const rent = me.filter(e=>e.type==="租屋補助").reduce((s,e)=>s+e.amount,0);
-    return {d, tutor, job, scholar, rent, total: tutor+job+scholar+rent};
+    const other = me.filter(e=>e.type==="其他").reduce((s,e)=>s+e.amount,0);
+    return {d, tutor, job, scholar, rent, other, total: tutor+job+scholar+rent+other};
   });
   const max = Math.max(...data.map(x=>x.total), 1);
   const w = 420, h = 120, padBottom = 20, barW = 32, gap = (w - barW*6)/7;
@@ -651,17 +670,18 @@ function renderChart(){
   data.forEach((item, i)=>{
     const x = gap + i*(barW+gap);
     const scale = (h - padBottom - 10) / max;
-    const tutorH = item.tutor * scale, jobH = item.job * scale, scholarH = item.scholar * scale, rentH = item.rent * scale;
+    const tutorH = item.tutor * scale, jobH = item.job * scale, scholarH = item.scholar * scale, rentH = item.rent * scale, otherH = item.other * scale;
     const baseY = h - padBottom;
-    svgContent += `<rect x="${x}" y="${baseY - rentH}" width="${barW}" height="${rentH}" fill="#5B7A99" rx="2"/>`;
-    svgContent += `<rect x="${x}" y="${baseY - rentH - scholarH}" width="${barW}" height="${scholarH}" fill="#8B6F1F" rx="2"/>`;
-    svgContent += `<rect x="${x}" y="${baseY - rentH - scholarH - jobH}" width="${barW}" height="${jobH}" fill="#3F6357" rx="2"/>`;
-    svgContent += `<rect x="${x}" y="${baseY - rentH - scholarH - jobH - tutorH}" width="${barW}" height="${tutorH}" fill="#B5562D" rx="2"/>`;
+    svgContent += `<rect x="${x}" y="${baseY - otherH}" width="${barW}" height="${otherH}" fill="#7A6C8B" rx="2"/>`;
+    svgContent += `<rect x="${x}" y="${baseY - otherH - rentH}" width="${barW}" height="${rentH}" fill="#5B7A99" rx="2"/>`;
+    svgContent += `<rect x="${x}" y="${baseY - otherH - rentH - scholarH}" width="${barW}" height="${scholarH}" fill="#8B6F1F" rx="2"/>`;
+    svgContent += `<rect x="${x}" y="${baseY - otherH - rentH - scholarH - jobH}" width="${barW}" height="${jobH}" fill="#3F6357" rx="2"/>`;
+    svgContent += `<rect x="${x}" y="${baseY - otherH - rentH - scholarH - jobH - tutorH}" width="${barW}" height="${tutorH}" fill="#B5562D" rx="2"/>`;
     svgContent += `<text x="${x+barW/2}" y="${h-4}" font-size="10" fill="#5C6B60" text-anchor="middle">${item.d.getMonth()+1}月</text>`;
   });
   svg.innerHTML = svgContent;
 }
-function typeTag(t){ return t==="家教"?"tutor":(t==="工讀"?"job":(t==="租屋補助"?"rent":"scholar")); }
+function typeTag(t){ return t==="家教"?"tutor":(t==="工讀"?"job":(t==="租屋補助"?"rent":(t==="其他"?"other":"scholar"))); }
 
 function renderOverview(){
   document.getElementById("monthLabel").textContent = monthLabelText(currentDate);
@@ -671,12 +691,14 @@ function renderOverview(){
   const jobSum = me.filter(e=>e.type==="工讀").reduce((s,e)=>s+e.amount,0);
   const scholarSum = me.filter(e=>e.type==="獎學金").reduce((s,e)=>s+e.amount,0);
   const rentSum = me.filter(e=>e.type==="租屋補助").reduce((s,e)=>s+e.amount,0);
+  const otherSum = me.filter(e=>e.type==="其他").reduce((s,e)=>s+e.amount,0);
 
-  document.getElementById("totalAmount").textContent = fmt(tutorSum+jobSum+scholarSum+rentSum);
+  document.getElementById("totalAmount").textContent = fmt(tutorSum+jobSum+scholarSum+rentSum+otherSum);
   document.getElementById("tutorTotal").textContent = fmt(tutorSum);
   document.getElementById("jobTotal").textContent = fmt(jobSum);
   document.getElementById("scholarTotal").textContent = fmt(scholarSum);
   document.getElementById("rentTotal").textContent = fmt(rentSum);
+  document.getElementById("otherTotal").textContent = fmt(otherSum);
 
   const list = document.getElementById("entriesList");
   if(me.length === 0){
@@ -700,6 +722,58 @@ function renderOverview(){
     }).join("");
   }
   renderChart();
+  renderPieChart(tutorSum, jobSum, scholarSum, rentSum, otherSum);
+}
+
+function polarToCartesian(cx, cy, r, angleDeg){
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+function pieSlicePath(cx, cy, r, startAngle, endAngle){
+  const start = polarToCartesian(cx, cy, r, endAngle);
+  const end = polarToCartesian(cx, cy, r, startAngle);
+  const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+  return `M ${cx} ${cy} L ${end.x} ${end.y} A ${r} ${r} 0 ${largeArc} 0 ${start.x} ${start.y} Z`;
+}
+function renderPieChart(tutorSum, jobSum, scholarSum, rentSum, otherSum){
+  const svg = document.getElementById("pieChart");
+  const legend = document.getElementById("pieLegend");
+  const total = tutorSum + jobSum + scholarSum + rentSum + otherSum;
+  const items = [
+    { label: "家教", value: tutorSum, color: "#B5562D" },
+    { label: "工讀", value: jobSum, color: "#3F6357" },
+    { label: "獎學金", value: scholarSum, color: "#8B6F1F" },
+    { label: "租屋補助", value: rentSum, color: "#5B7A99" },
+    { label: "其他", value: otherSum, color: "#7A6C8B" },
+  ].filter(it => it.value > 0);
+
+  if(total === 0 || items.length === 0){
+    svg.innerHTML = `<circle cx="60" cy="60" r="52" fill="none" stroke="#D8CFBC" stroke-width="14"/>`;
+    legend.innerHTML = `<div>這個月還沒有收入資料</div>`;
+    return;
+  }
+
+  let angle = 0;
+  let svgContent = "";
+  if(items.length === 1){
+    svgContent = `<circle cx="60" cy="60" r="52" fill="${items[0].color}"/>`;
+  }else{
+    items.forEach(it=>{
+      const slice = (it.value / total) * 360;
+      const path = pieSlicePath(60, 60, 52, angle, angle + slice);
+      svgContent += `<path d="${path}" fill="${it.color}"/>`;
+      angle += slice;
+    });
+  }
+  svg.innerHTML = svgContent;
+
+  legend.innerHTML = items.map(it=>{
+    const pct = Math.round((it.value / total) * 100);
+    return `<div style="display:flex;align-items:center;gap:6px;">
+      <i class="dot" style="background:${it.color};"></i>
+      <span>${it.label} ${pct}% · ${fmt(it.value)}</span>
+    </div>`;
+  }).join("");
 }
 
 document.getElementById("prevMonth").addEventListener("click", ()=>{
@@ -1195,7 +1269,11 @@ function monthDates(year, month, p){
   return result;
 }
 function dateStr(dt){ return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0"); }
-function shortDate(iso){ const parts = iso.split("-"); return parts[1]+"/"+parts[2]; }
+function shortDate(iso){
+  const parts = iso.split("-");
+  const dt = new Date(iso+"T00:00:00");
+  return parts[1]+"/"+parts[2]+"（"+WEEKDAY_LABELS[dt.getDay()]+"）";
+}
 function findReceipt(refId, period){ return receipts.find(r=>r.refId===refId && r.period===period); }
 
 function allSessionDatesSince(p, anchorStr, throughYear, throughMonth){
